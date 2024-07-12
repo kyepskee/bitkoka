@@ -1,31 +1,33 @@
 import std/num/int32
 import std/num/int64
-import std/text/parse
 import std/os/file
 import std/os/path
 import std/text/unicode
 
+import bytestring/bytestring
+import bytestring/parse
+
 type bencode
-    ByteString(s : string)
+    ByteString(s : bytes)
     Int(i : int)
     List(vs : list<bencode>)
-    Dict(d : list<(string, bencode)>)
+    Dict(d : list<(bytes, bencode)>)
 
-fun divshow(b : bencode) : div string
+fun divshow(b : bencode) : div bytes
     bencode(b)
     
 fun concat-string(v : list<string>) : string
     v.map(list).concat.string
     
-fun bencode-string(s : string) : string
-     [ s.count.show, ":", s ].concat-string
+fun bencode-string(s : bytes) : bytes
+     [ s.length.show.bytes, ":".bytes, s ].concat
     
 fun bit-repr(bits : int, n : int) : list<bool>
     list(0, bits - 1)
     .map(fn(i) {
         ((n / 2^i) % 2) == 1
     }).reverse
-
+    
 type hash
     Hash(h : (int32, int32, int32, int32, int32))
     
@@ -40,15 +42,21 @@ fun hash/show(h : hash) : string
         show-hex32(n, pre="").to-lower
     ).join
     
-fun sha1(s : string) : <console, pure> hash
+fun sha1(s : bytes) : <console, pure> hash
     val bitstring = s.list.map(fn(x) { bit-repr(8, x.int) }).concat
+    println("here")
     val padded-one = append(bitstring, single(True))
+    println("here")
     val zeros = replicate(False, (448-padded-one.length) % 512)
+    println("here")
     val padded-zeros = append(padded-one, zeros)
+    println("here")
     val final-bitstring = append(padded-zeros, bit-repr(64, bitstring.length))
+    println("here")
     fun split-every<a>(l : list<a>, mod : int) : div list<list<a>>
         if l.length > 0 then
-            single(l.take(mod)) ++ split-every(l.drop(mod), mod)
+            val (hd, tl) = l.split(mod)
+            Cons(hd, split-every(tl, mod))
         else
             []
     
@@ -60,14 +68,14 @@ fun sha1(s : string) : <console, pure> hash
             i := i + 1
         sum.uint32
         
-    fun to-bitstring(n : int32) : pure string
-        var i := 0
-        var sum := 0
-        var l : list<bool> := []
-        while { i < 32 }
-            l := l.append([ !int32/is-zero(n.rotl(i+1) % 2.int32) ])
-            i := i + 1
-        l.map(fn(x) { x.int.show }).concat-string
+    // fun to-bitstring(n : int32) : pure string
+    //     var i := 0
+    //     var sum := 0
+    //     var l : list<bool> := []
+    //     while { i < 32 }
+    //         l := l.append([ !int32/is-zero(n.rotl(i+1) % 2.int32) ])
+    //         i := i + 1
+    //     l.map(fn(x) { x.int.show }).concat-string
             
     var h0 : int32 := 1732584193.uint32
     var h1 : int32 := 4023233417.uint32
@@ -104,7 +112,6 @@ fun sha1(s : string) : <console, pure> hash
         d := h3
         e := h4
             
-        // blocks.map(to-bitstring).map(println)
         
         j := 0
         while { j < 80 }
@@ -134,33 +141,33 @@ fun sha1(s : string) : <console, pure> hash
 
 
 
-fun bencode(v : bencode) : div string
+fun bencode(v : bencode) : div bytes
     match v
         ByteString(s) ->
             bencode-string(s)
         Int(i) ->
-            ["i", i.show, "e"].concat-string
+            ["i", i.show, "e"].concat-string.bytes
         List(vs : list<bencode>) ->
-            ["l", vs.map(bencode).concat-string, "e"].concat-string
+            ["l".bytes, vs.map(bencode).concat, "e".bytes].concat
         Dict(d) ->
             val s = 
-                d.map(fn((s, value)) {
-                    [bencode-string(s), bencode(value)].concat-string
-                })
-                .concat-string
-            ["d", s, "e"].concat-string
+                d.map(fn((s, value)) 
+                    [bencode-string(s), bencode(value)].bytestring/concat
+                )
+                .concat
+            ["d".bytes, s, "e".bytes].concat
             
 fun parse-bencode() : <div, parse> bencode
     fun parse-int()
-        parse/char('i')
-        val n = pint()
-        parse/char('e')
+        char('i')
+        val n = pnat()
+        char('e')
         Int(n)
     
     fun parse-string()
-        val len = pint()
+        val len = pnat()
         char(':')
-        val str = parse/count(len, fn() none-of("")).string // none-of("") is *
+        val str = take(len)
         str
         
     fun parse-bytestring()
@@ -188,25 +195,17 @@ fun parse-bencode() : <div, parse> bencode
     // Dict(d : list<(string, bencode)>)
 
 fun main()
-    val h1 = sha1("The quick brown fox The quick brown fox The quick brown fox The quick brown fox The quick brown fox The quick brown fox The quick brown fox The quick brown fox The quick brown fox The quick brown fox\n")
-    // The quick brown fox jumps over the lazy dog")
-    println(h1)
-    // println(parse("d8:announce36:http://nyaa.tracker.wf:7777/announcee".slice, parse-bencode).maybe.map(bencode))
-    println(parse(read-text-file("test".realpath).slice, parse-bencode).is-parseOk())
-    val torrent-content = read-text-file("1807796.torrent".realpath)
-    val normalized = torrent-content.normalize(NFKD)
-    // println(sha1(read-text-file("1807796.torrent".realpath) ++ "\n"))
-    println(normalized.count)
-    
-    // println(parse(read-text-file("1807796.torrent".realpath).slice, parse-bencode).rest())
     trace("here")
-    val s : maybe<maybe<string>> =
-        parse(read-text-file("1807796.torrent".realpath).slice, parse-bencode).maybe.map fn(y)
+    println(sha1(read-bytes("1807796.torrent")))
+    
+    trace("here")
+    val s : maybe<maybe<bytes>> =
+        parse(read-bytes("1807796.torrent"), parse-bencode).maybe.map fn(y)
             trace("here")
             match y
                 Dict(a) ->
-                    val pair : maybe<(string, bencode)> =
-                        a.find(fn (x) { x.fst == "announce" })
+                    val pair : maybe<(bytes, bencode)> =
+                        a.find(fn (x) { x.fst == "announce".bytes })
                     val ben : maybe<bencode> = 
                         pair.maybe/map(fn (x) { x.tuple2/snd })
                     ben.map fn(inner)
@@ -214,11 +213,11 @@ fun main()
                             ByteString(s) ->
                                 s
                             _ ->
-                                ""
-
+                                "".bytes
+    
                 _ ->
                     Nothing
-    s
+    console/show/println(s.map(fn(x) x.map(force-string)))
     
     // println(sha1("aaaaaaaa").list.map(int))
     // println("hello")
