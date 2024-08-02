@@ -217,7 +217,7 @@ fun main()
     
                 _ ->
                     Nothing
-    console/show/println(s.map(fn(x) x.map(force-string)))
+    println(s.unjust.unjust.force-string)
     
     // println(sha1("aaaaaaaa").list.map(int))
     // println("hello")

@@ -3,9 +3,11 @@ import std/core/vector
 
 extern import
     c file "read_bytes.c"
+    js file "read_bytes.js"
 
-extern read-bytes-c(path : string) : vector<int>
+extern read-bytes-ext(path : string) : vector<int>
     c "kk_os_read_bytes"
+    js "readBytes"
     
 // int32 instead of int8, because int8 has no operations
 alias bytes = vector<int32>
@@ -18,7 +20,7 @@ fun concat(lb : list<bytes>) : bytes
     lb.map(list).concat.vector
     
 fun read-bytes(path : string) : bytes
-    read-bytes-c(path).map(int32)
+    read-bytes-ext(path).map(int32)
     
 fun (==)(a : bytes, b : bytes) : bool
     a.list == b.list
