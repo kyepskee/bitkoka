@@ -23,7 +23,7 @@ pub fun get(url: string, parameters : list<(bytes, bytes)>) : asyncx string {
 pub fun @default-background(action)
     background/handle(action)
     
-effect ctl background(f : () -> <async,io> ()) : ()
+pub effect ctl background(f : () -> <async,io> ()) : ()
 
 pub fun background/handle(action : () -> <background,async,io> ()) : <async,io> ()
     with handler
@@ -43,6 +43,17 @@ pub fun background/handle(action : () -> <background,async,io> ()) : <async,io> 
 //             async/handle({ g(data) })
 //     prim-connect(f)
 //     ch
+
+pub fun channel/split(ch : channel<either<a, b>>) : <asyncx,background> (channel<a>, channel<b>)
+    val ach = channel()
+    val bch = channel()
+    background
+        while { True }
+            match ch.receive
+                Left(a) -> ach.emit(a)
+                Right(b) -> bch.emit(b)
+    (ach, bch)
+
 pub fun connect() : <asyncx, console, background> channel<string>
     val read-ch = channel()
     await-to-channel(fn(cb)
@@ -54,7 +65,7 @@ pub fun connect() : <asyncx, console, background> channel<string>
     val cha = channel()
     val chb = channel()
     background({ while { True } { chb.emit(cha.receive) } })
-    cha.emit("kurwa")
+    cha.emit("Test")
     println(chb.receive)
     // two/interleaved({ ((!write-f).unjust)(write-ch.receive) }, { write-ch } ).snd
     read-ch
