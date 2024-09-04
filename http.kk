@@ -45,10 +45,9 @@ pub fun background/handle(action : () -> <background,asyncx,io-noexn> ()) : <asy
 //     ch
 pub fun connect() : <asyncx, console, background> channel<string>
     val read-ch = channel()
-    val write-f = ref(Nothing)
     await-to-channel(fn(cb)
-            write-f := Just(prim-connect(fn(data) cb(Ok(data), False)))
-            // prim-connect(fn(data) cb(Ok(data), False))
+            // write-f := Just(prim-connect(fn(data) cb(Ok(data), False)))
+            prim-connect(fn(data) cb(Ok(data), False))
             Nothing
         , read-ch, fn(data) { data.default("") })
 
