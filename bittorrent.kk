@@ -1,20 +1,79 @@
+module bittorrent
+
 import std/num/int32
 import std/num/int64
+import std/num/random
 import std/os/file
 import std/os/path
 import std/text/unicode
+import std/core/undiv
+import std/async
 
-import bytestring/bytestring
+import bytestring
 import bytestring/parse
+import http
 
 type bencode
     ByteString(s : bytes)
     Int(i : int)
     List(vs : list<bencode>)
     Dict(d : list<(bytes, bencode)>)
+    
+fun bencode/bytestring(b : bencode) : exn bytes
+    match b
+        ByteString(s) -> s
+        _ -> throw("not a bytestring")
+        
+fun bencode/int(b : bencode) : exn int
+    match b
+        Int(i) -> i
+        _ -> throw("not an int")
+        
+fun bencode/list(b : bencode) : exn list<bencode>
+    match b
+        List(l) -> l
+        _ -> throw("not a list")
+
+struct dictionary { list : list<(bytes, bencode)> }
+        
+fun bencode/dict(b : bencode) : exn dictionary
+    match b
+        Dict(d) -> Dictionary(d)
+        _ -> throw("not a dictionary")
+    
+
+pub fun dictionary/get(d : dictionary, key : bytes) : maybe<bencode>
+    d.list.find(fn ((k, _)) { k == key }).map(snd)
+    
+pub fun dictionary/@index(d : dictionary, key : bytes) : exn bencode
+    dictionary/get(d, key).unjust
 
 fun divshow(b : bencode) : div bytes
     bencode(b)
+
+fun bencode/show(b : bencode) : div string {
+    match b
+        ByteString(s) ->
+            "\"" ++ s.force-string ++ "\""
+        Int(i) ->
+            i.show
+        List(vs : list<bencode>) ->
+            val x : list<string> = vs.map(show).intersperse(", ")
+            val xx : string = x.concat-string
+            "[" ++ xx ++ "]"
+        Dict(d) ->
+            val strs =
+                d.map fn((k, v)) {
+                    "\"" ++ k.force-string ++ "\" => " ++ show(v)
+                }
+            "{" ++ strs.intersperse(", ").concat-string ++ "}"
+            // val s = 
+            //     d.map(fn((s, value)) 
+            //         [bencode-string(s), bencode(value)].bytestring/concat
+            //     )
+            //     .concat
+            // ["d".bytes, s, "e".bytes].concat
+}
     
 fun concat-string(v : list<string>) : string
     v.map(list).concat.string
@@ -30,6 +89,9 @@ fun bit-repr(bits : int, n : int) : list<bool>
     
 type hash
     Hash(h : (int32, int32, int32, int32, int32))
+
+fun hash/bytes(h : hash) : bytes
+    hash/list(h).map(int32/bytes).map(list).concat.vector
     
 fun hash/list(h : hash) : list<int32>
     match h
@@ -42,6 +104,13 @@ fun hash/show(h : hash) : string
         show-hex32(n, pre="").to-lower
     ).join
     
+fun split-every<a>(l : list<a>, mod : int) : list<list<a>>
+    if l.length > 0 then
+        val (hd, tl) = l.split(mod)
+        Cons(hd, split-every(pretend-decreasing(tl), mod))
+    else
+        []
+    
 fun sha1(s : bytes) : <console, pure> hash
     val bitstring = s.list.map(fn(x) { bit-repr(8, x.int) }).concat
     println("here")
@@ -53,12 +122,6 @@ fun sha1(s : bytes) : <console, pure> hash
     println("here")
     val final-bitstring = append(padded-zeros, bit-repr(64, bitstring.length))
     println("here")
-    fun split-every<a>(l : list<a>, mod : int) : div list<list<a>>
-        if l.length > 0 then
-            val (hd, tl) = l.split(mod)
-            Cons(hd, split-every(tl, mod))
-        else
-            []
     
     fun to-int32(l : list<bool>) : <div,exn> int32
         var i := 0
@@ -194,30 +257,97 @@ fun parse-bencode() : <div, parse> bencode
     // List(vs : list<bencode>)
     // Dict(d : list<(string, bencode)>)
 
+struct metainfo 
+    info : info
+    announce : bytes
+    
+value struct path
+    list : list<bytes>
+    
+value struct file-info
+    length : int
+    path : path
+
+value struct info 
+    name : bytes
+    piece-length : int
+    piece-list : list<bytes>
+    files : list<file-info>
+    
+fun bencode/path(b : bencode) : exn path
+    b.list.map(bytestring).Path
+
+fun bencode/file(b : bencode) : exn file-info
+    val dict = b.dict
+    File-info(
+        dict["length".bytes].int,
+        bencode/path(dict["path".bytes])
+    )
+
+fun bencode/info(b : bencode) : exn info
+    val dict : dictionary = b.dict
+    val pieces : bytes = dict["pieces".bytes].bytestring
+    val piece-list : list<bytes> = vector/list(pieces).split-every(20).map(vector)
+    Info(
+        dict["name".bytes].bytestring,
+        dict["piece length".bytes].int,
+        piece-list,
+        dict["files".bytes].list.map(bencode/file)
+    )
+
+fun bencode/metainfo(b : bencode) : exn metainfo
+    val dict = b.dict
+    val announce = dict["announce".bytes].bytestring
+    Metainfo(
+        bencode/info(dict["info".bytes]),
+        announce
+    )
+
+value struct peer-info
+    ip : int32
+    port : int32
+
+struct tracker-response
+    interval : int
+    min-interval : int
+    tracker-id : int
+    complete : int
+    incomplete : int
+    peers : list<peer-info>
+    
 fun main()
-    trace("here")
-    println(sha1(read-bytes("1807796.torrent")))
+    // println(sha1(read-bytes("1807796.torrent")))
     
-    trace("here")
-    val s : maybe<maybe<bytes>> =
-        parse(read-bytes("1807796.torrent"), parse-bencode).maybe.map fn(y)
-            trace("here")
-            match y
-                Dict(a) ->
-                    val pair : maybe<(bytes, bencode)> =
-                        a.find(fn (x) { x.fst == "announce".bytes })
-                    val ben : maybe<bencode> = 
-                        pair.maybe/map(fn (x) { x.tuple2/snd })
-                    ben.map fn(inner)
-                        match inner
-                            ByteString(s) ->
-                                s
-                            _ ->
-                                "".bytes
+    // val torrent : bytes = read-bytes("1807796.torrent")
+    // 
+    // val id : bytes = 
+    //    [random-int32(), random-int32(), random-int32(), random-int32(), random-int32()]
+    //    .map(int32/bytes).map(list).concat.vector
+    // val metainfo-bencode : bencode = parse(torrent, parse-bencode).maybe.unjust
+    // val info-hash : hash = sha1(bencode(metainfo-bencode.dict["info".bytes]))
+    // val metainfo : metainfo = bencode/metainfo(metainfo-bencode)
+    // val test-hash = read-bytes("hash").url-encode
+    // println(test-hash)
+    // val parameters : list<(bytes, bytes)> =
+    //     [
+    //         ("info_hash".bytes, info-hash.bytes),
+    //         ("peer_id".bytes, id),
+    //         ("port".bytes, 6881.bytes),
+    //         ("uploaded".bytes, 0.bytes),
+    //         ("downloaded".bytes, 0.bytes),
+    //         ("left".bytes, metainfo.info.piece-list.length.bytes),
+    //         ("compact".bytes, 1.bytes)
+    //     ]
+    val socket = connect()
+    println(receive(socket))
+    println(receive(socket))
+    println(receive(socket))
     
-                _ ->
-                    Nothing
-    println(s.unjust.unjust.force-string)
+    2
+    
+    // emit(socket, "test")
+    // metainfo.info.files.map(fn (file) { file.path.list.map(force-string).concat-string } )
+    // bencode/show(parse(http/get(metainfo.announce.force-string, parameters).bytes, parse-bencode).maybe.unjust)
     
     // println(sha1("aaaaaaaa").list.map(int))
     // println("hello")
