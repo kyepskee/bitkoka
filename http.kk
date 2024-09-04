@@ -23,14 +23,14 @@ pub fun get(url: string, parameters : list<(bytes, bytes)>) : asyncx string {
 pub fun @default-background(action)
     background/handle(action)
     
-effect ctl background(f : () -> <async,io-noexn> ()) : ()
+effect ctl background(f : () -> <asyncx,io-noexn> ()) : ()
 
-pub fun background/handle(action : () -> <background,async,io-noexn> ()) : <async,io-noexn> ()
+pub fun background/handle(action : () -> <background,asyncx,io-noexn> ()) : <asyncx,io-noexn> ()
     with handler
         return(x) x
         ctl background(f) {
-            // resume(())
-            // two/interleaved({ resume(()) }, f)
+            // resume has the same effect type as action
+            two/interleaved({ resume(()) }, f)
             ()
         }
     action()
@@ -43,21 +43,20 @@ pub fun background/handle(action : () -> <background,async,io-noexn> ()) : <asyn
 //             async/handle({ g(data) })
 //     prim-connect(f)
 //     ch
-
-pub fun connect() : <asyncx, background> channel<string>
+pub fun connect() : <asyncx, console, background> channel<string>
     val read-ch = channel()
-    val write-ch = channel()
-    val write-f-ch = channel()
+    val write-f = ref(Nothing)
     await-to-channel(fn(cb)
-            // write-f-ch.emit-io(prim-connect(fn(data) cb(Ok(data), False)))
+            write-f := Just(prim-connect(fn(data) cb(Ok(data), False)))
             // prim-connect(fn(data) cb(Ok(data), False))
             Nothing
         , read-ch, fn(data) { data.default("") })
-    // val write-f = write-f-ch.receive
 
-    // background({ 
-    //     write-f(write-ch.receive)
-    // })
+    val cha = channel()
+    val chb = channel()
+    background({ while { True } { chb.emit(cha.receive) } })
+    cha.emit("kurwa")
+    println(chb.receive)
     // two/interleaved({ ((!write-f).unjust)(write-ch.receive) }, { write-ch } ).snd
     read-ch
     

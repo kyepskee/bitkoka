@@ -343,8 +343,6 @@ fun main()
     println(receive(socket))
     println(receive(socket))
     
-    2
-    
     // emit(socket, "test")
     // metainfo.info.files.map(fn (file) { file.path.list.map(force-string).concat-string } )
     // bencode/show(parse(http/get(metainfo.announce.force-string, parameters).bytes, parse-bencode).maybe.unjust)
