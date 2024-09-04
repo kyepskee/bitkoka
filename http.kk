@@ -23,9 +23,9 @@ pub fun get(url: string, parameters : list<(bytes, bytes)>) : asyncx string {
 pub fun @default-background(action)
     background/handle(action)
     
-effect ctl background(f : () -> <asyncx,io-noexn> ()) : ()
+effect ctl background(f : () -> <async,io> ()) : ()
 
-pub fun background/handle(action : () -> <background,asyncx,io-noexn> ()) : <asyncx,io-noexn> ()
+pub fun background/handle(action : () -> <background,async,io> ()) : <async,io> ()
     with handler
         return(x) x
         ctl background(f) {
