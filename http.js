@@ -30,8 +30,14 @@ function _connect(ondata) {
     const client = net.createConnection({ port: 8080 })
     
     client.on('data', (data) => {
-        ondata(data.toString())
+        ondata(false, data)
     })
-    return (str) => client.write(str)
+    
+    client.on('end', () => {
+        ondata(true, [])
+    })
+    
+    // return (str) => client.write(str)
+    return (str) => client.write(Buffer.from(str))
 }
 

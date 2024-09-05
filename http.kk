@@ -3,12 +3,25 @@ module http
 import std/async
 import std/os/null
 import std/core/exn
+import std/num/int32
 
+import jsextern
 import bytestring
 
 extern import {
     js file "http.js"
 }
+
+pub struct tunnel<a> {
+    input : channel<a>
+    output : channel<a>
+}
+
+pub fun tunnel/emit(t : tunnel<a>, x : a) : asyncx ()
+    t.output.emit(x)
+    
+pub fun tunnel/receive(t : tunnel<a>) : asyncx a
+    t.input.receive
 
 pub fun get(url: string, parameters : list<(bytes, bytes)>) : asyncx string {
     val string-parameters : list<string>
@@ -35,15 +48,6 @@ pub fun background/handle(action : () -> <background,async,io> ()) : <async,io> 
         }
     action()
 
-// pub fun connect() : asyncx channel<string>
-//     val ch = channel()
-//     val g : string -> <async,ndet> () = fn (data) { try({ emit(ch, data) }, fn (e) { () }) }
-//     val f : string -> io-noexn () = 
-//         fn (data)
-//             async/handle({ g(data) })
-//     prim-connect(f)
-//     ch
-
 pub fun channel/split(ch : channel<either<a, b>>) : <asyncx,background> (channel<a>, channel<b>)
     val ach = channel()
     val bch = channel()
@@ -53,25 +57,30 @@ pub fun channel/split(ch : channel<either<a, b>>) : <asyncx,background> (channel
                 Left(a) -> ach.emit(a)
                 Right(b) -> bch.emit(b)
     (ach, bch)
-
-pub fun connect() : <asyncx, console, background> channel<string>
-    val read-ch = channel()
+    
+pub fun connect() : <asyncx, console, background> tunnel<bytes>
+    val comm-ch = channel()
     await-to-channel(fn(cb)
-            // write-f := Just(prim-connect(fn(data) cb(Ok(data), False)))
-            prim-connect(fn(data) cb(Ok(data), False))
+            // cb is used to send data over channel
+            val write-f = 
+                prim-connect fn(end, data) 
+                    cb(Ok(Right(data.list.vector.map(int32))), end)
+                    
+            cb(Ok(Left(write-f)), False)
             Nothing
-        , read-ch, fn(data) { data.default("") })
+        , comm-ch, fn(data) { data.default(Right([].vector)) })
+    val (write-f-ch, read-ch) = channel/split(comm-ch)
+    val write-f = write-f-ch.receive
+    
+    val write-ch : channel<bytes> = channel()
+    // when something is written over write-ch, send it to JS with write-f
+    background
+        while { True } 
+            write-f(write-ch.receive)
+            
+    Tunnel(read-ch, write-ch)
 
-    val cha = channel()
-    val chb = channel()
-    background({ while { True } { chb.emit(cha.receive) } })
-    cha.emit("Test")
-    println(chb.receive)
-    // two/interleaved({ ((!write-f).unjust)(write-ch.receive) }, { write-ch } ).snd
-    read-ch
-    
-    
-extern prim-connect(on-data : string -> io-noexn ()) : io-noexn (string -> io-noexn ()) {
+extern prim-connect(on-data : (bool, jsarray<int>) -> io-noexn ()) : io-noexn (bytes -> io-noexn ()) {
     js "_connect"
 }
 

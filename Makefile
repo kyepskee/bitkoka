@@ -1,2 +1,2 @@
 all:
-	koka --execute --target=jsnode bittorrent.kk
+	koka --target=jsnode bittorrent.kk --execute

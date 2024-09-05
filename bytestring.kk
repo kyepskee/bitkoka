@@ -18,9 +18,12 @@ pub alias bytes = vector<int32>
 // ascii string to bytes
 pub fun string/bytes(s : string) : bytes
     s.list.map(int).map(int32).vector
-
-pub fun int/bytes(i : int) : bytes
-    i.show.bytes
+    
+pub fun (++)(a : bytes, b : bytes) : bytes
+    append(a.list, b.list).vector
+    
+pub fun (**)(a : bytes, n : int) : bytes
+    replicate(a.list, n).concat.vector
 
 // split int32 into 4 bytes
 pub fun int32/bytes(n : int32) : bytes
