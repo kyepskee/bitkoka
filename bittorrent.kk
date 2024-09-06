@@ -12,6 +12,7 @@ import std/async
 import bytestring
 import bytestring/parse
 import http
+import peer
 
 type bencode
     ByteString(s : bytes)
@@ -339,8 +340,7 @@ fun main()
     //         ("compact".bytes, 1.bytes)
     //     ]
     val tun = connect()
-    tun.emit([255.int32].vector)
-    println(tun.receive.url-encode)
+    handshake(tun)
     2
 
     // emit(socket, "test")

@@ -33,19 +33,17 @@ pub fun get(url: string, parameters : list<(bytes, bytes)>) : asyncx string {
     }
 }
 
-pub fun @default-background(action)
-    background/handle(action)
     
 pub effect ctl background(f : () -> <async,io> ()) : ()
 
-pub fun background/handle(action : () -> <background,async,io> ()) : <async,io> ()
-    with handler
-        return(x) x
+pub fun @default-background(action : () -> <background,async,io> ()) : <async,io> ()
+    with handler {
         ctl background(f) {
             // resume has the same effect type as action
             two/interleaved({ resume(()) }, f)
             ()
         }
+    }
     action()
 
 pub fun channel/split(ch : channel<either<a, b>>) : <asyncx,background> (channel<a>, channel<b>)

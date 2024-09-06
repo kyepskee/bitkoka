@@ -1,2 +1,2 @@
 all:
-	koka --target=jsnode bittorrent.kk --execute
+	./compile.sh
