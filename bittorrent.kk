@@ -9,6 +9,7 @@ import std/text/unicode
 import std/core/undiv
 import std/async
 
+import hash
 import bytestring
 import bytestring/parse
 import http
@@ -87,23 +88,6 @@ fun bit-repr(bits : int, n : int) : list<bool>
     .map(fn(i) {
         ((n / 2^i) % 2) == 1
     }).reverse
-
-type hash
-    Hash(h : (int32, int32, int32, int32, int32))
-
-fun hash/bytes(h : hash) : bytes
-    hash/list(h).map(int32/bytes).map(list).concat.vector
-
-fun hash/list(h : hash) : list<int32>
-    match h
-        Hash((a, b, c, d, e)) ->
-            [a, b, c, d, e]
-
-fun hash/show(h : hash) : string
-    h.list.map-indexed(fn(idx, n)
-        // val first = int/(==)(idx, 0)
-        show-hex32(n, pre="").to-lower
-    ).join
 
 fun split-every<a>(l : list<a>, mod : int) : list<list<a>>
     if l.length > 0 then
@@ -319,8 +303,8 @@ struct tracker-response
 fun main()
     // println(sha1(read-bytes("1807796.torrent")))
 
-    // val torrent : bytes = read-bytes("1807796.torrent")
-    //
+    val torrent : bytes = read-bytes("1807796.torrent")
+
     // val id : bytes =
     //    [random-int32(), random-int32(), random-int32(), random-int32(), random-int32()]
     //    .map(int32/bytes).map(list).concat.vector
@@ -340,7 +324,7 @@ fun main()
     //         ("compact".bytes, 1.bytes)
     //     ]
     val tun = connect()
-    handshake(tun)
+    // handshake(tun, info-hash, id)
     2
 
     // emit(socket, "test")

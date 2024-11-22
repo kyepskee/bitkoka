@@ -10,7 +10,7 @@ function _get(url, action) {
         let error;
 
         if (statusCode != 200) {
-            error = new Error('Request failed.\n' + `StatusCodee: ${statusCode}`);
+            error = new Error('Request failed.\n' + `StatusCode: ${statusCode}`);
         }
         
         if (error) {
@@ -27,7 +27,7 @@ function _get(url, action) {
 
 // returns an action to call when you want to send something over the connection
 function _connect(ondata) {
-    const client = net.createConnection({ port: 8080 })
+    const client = net.createConnection({ port: 25372 })
     
     client.on('data', (data) => {
         ondata(false, data)

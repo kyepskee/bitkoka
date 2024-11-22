@@ -2,13 +2,15 @@ This is a basic implementation of the BitTorrent protocol in [Koka](https://koka
 
 # Installation
 
-To install this, you will need Tim Whiting's fork of Koka which includes async, which has not yet been incorporated into Koka.
+To install this, you will need the dev branch of Koka with the `std/async` module manually added.
 
-First, install Koka from [here](https://github.com/TimWhiting/koka/tree/libuv), according to the instructions in the README.
+First, install the dev branch of [Koka](https://github.com/koka-lang/koka/tree/dev), according to the instructions in the README.
 
-Next, compile this project with the provided script:
-```
-$ ./compile.sh
+Next, copy the file `lib/std/async.kk` from [Tim Whiting's fork](https://github.com/TimWhiting/koka/blob/libuv/lib/std/async.kk) to the standard library of Koka.
+
+Then, you can run the project with:
+```bash
+koka --target=jsnode --execute bittorrent.kk
 ```
 
 # Technical details

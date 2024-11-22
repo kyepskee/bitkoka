@@ -2,6 +2,7 @@ module peer
 
 import std/num/int32
 
+import hash
 import bytestring
 import http
 
@@ -11,9 +12,9 @@ struct peer-state
     peer_choking : bool
     peer_interested : bool
     
-pub fun handshake(conn : tunnel<bytes>)
+pub fun handshake(conn : tunnel<bytes>, info-hash : hash, id : bytes)
     val pstr = "BitTorrent protocol".bytes
     val pstrlen = [pstr.length.int32].vector
     val reserved = 0.int32.bytes ** 4
-    conn.emit(pstrlen ++ pstr ++ reserved)
+    conn.emit(pstrlen ++ pstr ++ reserved ++ info-hash.bytes ++ id)
     ()
