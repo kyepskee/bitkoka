@@ -25,6 +25,9 @@ pub fun (++)(a : bytes, b : bytes) : bytes
 pub fun (**)(a : bytes, n : int) : bytes
     replicate(a.list, n).concat.vector
 
+pub fun byte/bytes(n: int): bytes
+    [ n.int32.and(0xff.int32) ].vector
+
 // split int32 into 4 bytes
 pub fun int32/bytes(n : int32) : bytes
     val msk = 0xff.int32
