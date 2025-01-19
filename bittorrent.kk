@@ -24,57 +24,62 @@ type bencode
 fun bencode/bytestring(b : bencode) : exn bytes
     match b
         ByteString(s) -> s
-        _ -> throw("not a bytestring")
+        _ -> throw("Value " ++ bencode/show(b) ++ " is not a bytestring")
 
 fun bencode/int(b : bencode) : exn int
     match b
         Int(i) -> i
-        _ -> throw("not an int")
+        _ -> throw("Value " ++ bencode/show(b) ++ " is not an int")
 
 fun bencode/list(b : bencode) : exn list<bencode>
     match b
         List(l) -> l
-        _ -> throw("not a list")
+        _ -> throw("Value " ++ bencode/show(b) ++ " is not a list")
 
 struct dictionary { list : list<(bytes, bencode)> }
 
 fun bencode/dict(b : bencode) : exn dictionary
     match b
         Dict(d) -> Dictionary(d)
-        _ -> throw("not a dictionary")
+        _ -> throw("Value " ++ bencode/show(b) ++ " is not a dictionary")
 
 
 pub fun dictionary/get(d : dictionary, key : bytes) : maybe<bencode>
     d.list.find(fn ((k, _)) { k == key }).map(snd)
 
 pub fun dictionary/@index(d : dictionary, key : bytes) : exn bencode
-    dictionary/get(d, key).unjust
+    match dictionary/get(d, key)
+        Just(value) ->
+            value
+        Nothing ->
+            throw("Unsuccesfully indexed dictionary with key \"" ++ show(key) ++ "\"")
 
-fun divshow(b : bencode) : div bytes
-    bencode(b)
-
-fun bencode/show(b : bencode) : div string {
+fun divshow(b : bencode) : div string
     match b
         ByteString(s) ->
-            "\"" ++ s.force-string ++ "\""
+            "ByteString(\"" ++ s.show ++ "\")"
         Int(i) ->
-            i.show
+            "Int(" ++ i.show ++ ")"
         List(vs : list<bencode>) ->
-            val x : list<string> = vs.map(show).intersperse(", ")
+            val x : list<string> = vs.map(divshow).intersperse(", ")
             val xx : string = x.concat-string
-            "[" ++ xx ++ "]"
+            "List[" ++ xx ++ "]"
         Dict(d) ->
             val strs =
                 d.map fn((k, v)) {
-                    "\"" ++ k.force-string ++ "\" => " ++ show(v)
+                    "\"" ++ k.force-string ++ "\" => " ++ divshow(v)
                 }
-            "{" ++ strs.intersperse(", ").concat-string ++ "}"
+            "Dict{" ++ strs.intersperse(", ").concat-string ++ "}"
             // val s =
             //     d.map(fn((s, value))
             //         [bencode-string(s), bencode(value)].bytestring/concat
             //     )
             //     .concat
             // ["d".bytes, s, "e".bytes].concat
+
+fun bencode/show(b : bencode) : string {
+    pretend-no-div
+        divshow(b)
 }
 
 fun concat-string(v : list<string>) : string
