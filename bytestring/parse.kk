@@ -27,6 +27,16 @@ fun byte(byte : int32) : parse int32
             Just(byt) | (byt == byte) -> Just((byte, b.list.tail.vector))
             _ -> Nothing
     satisfy-fail(byte.show, pred)
+
+fun exact(bs : bytes) : parse bytes
+    bs.map(byte)
+
+fun read-byte() : parse int32
+    fun pred(b : bytes) : total maybe<(int32, bytes)>
+        match b.list.head
+            Just(byte) -> Just((byte, b.list.tail.vector))
+            _ -> Nothing
+    satisfy-fail("empty", pred)
     
 
 fun bytes-are(msg : string, pred : int32 -> bool) : parse bytes
@@ -34,6 +44,13 @@ fun bytes-are(msg : string, pred : int32 -> bool) : parse bytes
         match bytes.list.take-while(pred)
             [] -> Nothing
             xs -> Just((xs.vector, bytes.list.drop(xs.length).vector))
+
+fun bytenum(width : int) : parse int
+    if width <= 0 then
+        0
+    else
+        val shift = 2^(8 * (width - 1))
+        read-byte().int * shift + bytenum(pretend-decreasing(width - 1))
     
 fun is-digit(byte : int32)
     ('0'.int.int32 <= byte && byte <= '9'.int.int32)
@@ -91,3 +108,10 @@ fun parse(b : bytes, p : () -> <parse|e> a) : e parse-error<a>
                 _ ->
                     input := save
                     resume(False)
+
+fun parse-keep(b : ref<h, bytes>, p : () -> <st<h>,parse|e> a) : <st<h>|e> parse-error<a>
+    val res = parse(!b, p)
+    match parse(!b, p)
+        ParseOk(_, rest) -> set(b, rest)
+        _ -> {}
+    res
