@@ -315,35 +315,29 @@ struct tracker-response
     peers : list<peer-info>
 
 fun main()
-    // println(sha1(read-bytes("1807796.torrent")))
+    val filename = "bocchi.torrent"
 
-    val torrent : bytes = read-bytes("1807796.torrent")
+    val torrent : bytes = read-bytes(filename)
 
-    // val id : bytes =
-    //    [random-int32(), random-int32(), random-int32(), random-int32(), random-int32()]
-    //    .map(int32/bytes).map(list).concat.vector
-    // val metainfo-bencode : bencode = parse(torrent, parse-bencode).maybe.unjust
-    // val info-hash : hash = sha1(bencode(metainfo-bencode.dict["info".bytes]))
-    // val metainfo : metainfo = bencode/metainfo(metainfo-bencode)
-    // val test-hash = read-bytes("hash").url-encode
-    // println(test-hash)
-    // val parameters : list<(bytes, bytes)> =
-    //     [
-    //         ("info_hash".bytes, info-hash.bytes),
-    //         ("peer_id".bytes, id),
-    //         ("port".bytes, 6881.bytes),
-    //         ("uploaded".bytes, 0.bytes),
-    //         ("downloaded".bytes, 0.bytes),
-    //         ("left".bytes, metainfo.info.piece-list.length.bytes),
-    //         ("compact".bytes, 1.bytes)
-    //     ]
+    val id = [srandom-int32(), srandom-int32(), srandom-int32(), srandom-int32(), srandom-int32()].map(int32/bytes).map(list).concat.vector
+        
+    val metainfo-bencode : bencode = parse(torrent, parse-bencode).maybe.unjust
+    val info-hash : hash = sha1(bencode(metainfo-bencode.dict["info".bytes]))
+    val metainfo : metainfo = bencode/metainfo(metainfo-bencode)
+    val parameters : list<(bytes, bytes)> =
+        [
+            ("info_hash".bytes, info-hash.bytes),
+            ("peer_id".bytes, id),
+            ("port".bytes, 6881.int32.bytes),
+            ("uploaded".bytes, 0.int32.bytes),
+            ("downloaded".bytes, 0.int32.bytes),
+            ("left".bytes, metainfo.info.piece-list.length.int32.bytes),
+            ("compact".bytes, 1.int32.bytes)
+        ]
+
+    println(info-hash.bytes.list.length)
     val tun = connect()
+    comm-tunnel(tun)
+        handshake(info-hash, id)
     // handshake(tun, info-hash, id)
-    2
-
-    // emit(socket, "test")
-    // metainfo.info.files.map(fn (file) { file.path.list.map(force-string).concat-string } )
-    // bencode/show(parse(http/get(metainfo.announce.force-string, parameters).bytes, parse-bencode).maybe.unjust)
-
-    // println(sha1("aaaaaaaa").list.map(int))
-    // println("hello")
+    ()
