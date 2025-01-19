@@ -45,7 +45,7 @@ pub fun (==)(a : bytes, b : bytes) : bool
     a.list == b.list
     
 pub fun show(a : bytes) : string
-    a.list.show
+    a.url-encode
 
 pub fun force-string(b : bytes) : string
     b.list.map(int).map(char).string
