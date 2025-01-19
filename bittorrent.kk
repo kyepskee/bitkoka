@@ -269,15 +269,29 @@ fun bencode/file(b : bencode) : exn file-info
         bencode/path(dict["path".bytes])
     )
 
+fun bencode/single-file(dict : dictionary) : exn file-info
+    File-info(
+        dict["length".bytes].int,
+        [ dict["name".bytes].bytestring ].Path
+    )
+    
+
 fun bencode/info(b : bencode) : exn info
     val dict : dictionary = b.dict
     val pieces : bytes = dict["pieces".bytes].bytestring
     val piece-list : list<bytes> = vector/list(pieces).split-every(20).map(vector)
+    val file-infos =
+        match dict.get("files".bytes)
+            Just(files) ->
+                files.list.map(bencode/file)
+            Nothing ->
+                [ bencode/single-file(dict) ]
+
     Info(
         dict["name".bytes].bytestring,
         dict["piece length".bytes].int,
         piece-list,
-        dict["files".bytes].list.map(bencode/file)
+        file-infos
     )
 
 fun bencode/metainfo(b : bencode) : exn metainfo
