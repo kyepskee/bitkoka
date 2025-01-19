@@ -103,15 +103,10 @@ fun split-every<a>(l : list<a>, mod : int) : list<list<a>>
 
 fun sha1(s : bytes) : <console, pure> hash
     val bitstring = s.list.map(fn(x) { bit-repr(8, x.int) }).concat
-    println("here")
     val padded-one = append(bitstring, single(True))
-    println("here")
     val zeros = replicate(False, (448-padded-one.length) % 512)
-    println("here")
     val padded-zeros = append(padded-one, zeros)
-    println("here")
     val final-bitstring = append(padded-zeros, bit-repr(64, bitstring.length))
-    println("here")
 
     fun to-int32(l : list<bool>) : <div,exn> int32
         var i := 0
