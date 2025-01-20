@@ -30,3 +30,16 @@ pub fun handshake(info-hash : hash, id : bytes) : comm<bytes> ()
     val pstrlen = [pstr.length.int32].vector
     val reserved = byte/bytes(0) ** 8
     write(pstrlen ++ pstr ++ reserved ++ info-hash.bytes ++ id)
+
+type message
+    KeepAlive
+    Choke
+    Unchoke
+    Interested
+    NotInterested
+    Have(index : int)
+    Bitfield(bitfield : bytes)
+    Request(index : int, begin : int, length : int)
+    Piece(index : int, begin : int, block : bytes)
+    Cancel(index : int, begin : int, length : int)
+    Port(listen-port : int)
