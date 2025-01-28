@@ -335,17 +335,16 @@ fun main()
             ("compact".bytes, 1.int32.bytes)
         ]
 
-    println(info-hash.bytes.list.length)
     val tun = connect()
-    comm-tunnel(tun)
-        handshake(info-hash, id)
-        var buffer := ref([].vector)
-        buffer.set(read())
-        val message = parse-keep(buffer, parse-handshake).maybe.unjust
-        // TODO: parse each read() as a series of messages, but dont keep the buffer between read()s
-        println("Peer id: " ++ message.show)
-        while { vector/length(!buffer) > 0 }
-            println(parse-keep(buffer, parse-message).maybe.unjust.show)
+    with comm-tunnel(tun)
+
+    handshake(info-hash, id)
+    var buffer := ref([].vector)
+    buffer.set(read())
+    val message = parse-keep(buffer, parse-handshake).maybe.unjust
+    // TODO: parse each read() as a series of messages, but dont keep the buffer between read()s
+    println("Peer id: " ++ message.show)
+    while { vector/length(!buffer) > 0 }
+        println(parse-keep(buffer, parse-message).maybe.unjust.show)
             
-    // handshake(tun, info-hash, id)
     ()
