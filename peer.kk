@@ -74,6 +74,28 @@ fun message/id(m : message) : int
         KeepAlive -> -1
         Unknown -> -2
 
+pub fun serialize(m : message) : bytes
+    if m.is-KeepAlive then
+        return byte/bytes(0) ** 4
+    val args = 
+        match m
+            KeepAlive -> [] // never happens
+            Choke -> []
+            Unchoke -> []
+            Interested -> []
+            NotInterested -> []
+            Have(index) -> [index.int/bytes(4)]
+            Bitfield(bitfield) -> [bitfield]
+            Request(index, begin, length) -> [index.bytes(4), begin.bytes(4), length.bytes(4)]
+            Piece(index, begin, block) -> [index.bytes(4), begin.bytes(4), block]
+            Cancel(index, begin, length) -> [index.bytes(4), begin.bytes(4), length.bytes(4)]
+            Port(port) -> [port.bytes(4)]
+            Unknown(_) -> []
+
+    val msg : bytes = args.concat
+    val len = (1 + msg.length).int/bytes(4)
+    len ++ m.id.int/bytes(1) ++ msg
+
 pub fun message/show(m : message) : string
     match m
         KeepAlive -> "KeepAlive"

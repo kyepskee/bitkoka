@@ -29,10 +29,14 @@ pub fun (**)(a : bytes, n : int) : bytes
 pub fun byte/(**)(a : int32, n : int) : bytes
     replicate([a], n).concat.vector
 
-pub fun int/bytes(n : int) : bytes
-    val nn = n / (2^8)
-    val rest = if nn == 0 then [].vector else int/bytes(pretend-decreasing(nn))
-    rest ++ byte/bytes(n)
+pub fun int/bytes(n : int, len : int) : bytes
+    var v := vector(len, 0.int32)
+    var x := n
+    (v.map fn(_)
+        val ret = (x % 2^8).int32
+        x := x / 2^8
+        ret
+    ).list.reverse.vector
 
 pub fun byte/bytes(n: int): bytes
     [ n.int32.and(0xff.int32) ].vector
