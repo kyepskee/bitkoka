@@ -7,6 +7,7 @@ import bytes
 import bytes/parse
 import http
 import std/async
+import debug
 
 struct peer-state
     am_choking : bool
@@ -80,13 +81,13 @@ pub fun message/show(m : message) : string
         Unchoke -> "Unchoke"
         Interested -> "Interested"
         NotInterested -> "NotInterested"
-        Have(index) -> "Have(" ++ index.show ++ ")"
-        Bitfield(bitfield) -> "Bitfield(" ++ bitfield.show ++ ")"
-        Request(index, begin, length) -> "Request(index, begin, length)"
-        Piece(index, begin, block) -> "Piece(index, begin, block)"
-        Cancel(index, begin, length) -> "Cancel(index, begin, length)"
-        Port(listen-port) -> "Port(listen-port)"
-        Unknown(id) -> "Unknown(" ++ id.show ++ ")"
+        Have(index) -> "Have(" +++ index +++ ")"
+        Bitfield(bitfield) -> "Bitfield(" +++ bitfield +++ ")"
+        Request(index, begin, length) -> "Request(" +++ index +++ ", " +++ begin +++ ", " +++ length +++ ")"
+        Piece(index, begin, block) -> "Piece(" +++ index +++ ", " +++ begin +++ ", " +++ block +++ ")"
+        Cancel(index, begin, length) -> "Cancel(" +++ index +++ ", " +++ begin +++ ", " +++ length +++ ")"
+        Port(listen-port) -> "Port(" +++ listen-port +++ ")"
+        Unknown(id) -> "Unknown(" +++ id +++ ")"
 
 pub fun parse-message() : parse message
     val len = bytenum(4)
