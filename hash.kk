@@ -3,7 +3,7 @@ module hash
 import std/num/int32
 import std/num/int64
 
-import bytestring
+import bytes
 
 pub type hash
     Hash(h : (int32, int32, int32, int32, int32))

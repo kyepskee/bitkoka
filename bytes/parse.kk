@@ -1,7 +1,7 @@
 import std/num/int32
 import std/core/undiv
 
-import bytestring
+import bytes
 
 effect parse
     fun satisfy(pred : bytes -> total maybe<(a, bytes)>) : maybe<a>

@@ -3,8 +3,8 @@ module peer
 import std/num/int32
 
 import hash
-import bytestring
-import bytestring/parse
+import bytes
+import bytes/parse
 import http
 import std/async
 

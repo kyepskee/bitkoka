@@ -10,8 +10,8 @@ import std/core/undiv
 import std/async
 
 import hash
-import bytestring
-import bytestring/parse
+import bytes
+import bytes/parse
 import http
 import peer
 
@@ -200,7 +200,7 @@ fun bencode(v : bencode) : div bytes
         Dict(d) ->
             val s =
                 d.map(fn((s, value))
-                    [bencode-string(s), bencode(value)].bytestring/concat
+                    [bencode-string(s), bencode(value)].bytes/concat
                 )
                 .concat
             ["d".bytes, s, "e".bytes].concat

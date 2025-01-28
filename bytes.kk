@@ -1,12 +1,13 @@
-module bytestring
+module bytes
 
 import std/num/int32
 import std/core/vector
 import std/core/char
+import std/core/undiv
 
 extern import
-    c file "bytestring/read_bytes.c"
-    js file "bytestring/read_bytes.js"
+    c file "bytes/read_bytes.c"
+    js file "bytes/read_bytes.js"
 
 extern read-bytes-ext(path : string) : vector<int>
     c "kk_os_read_bytes"
@@ -25,6 +26,14 @@ pub fun (++)(a : bytes, b : bytes) : bytes
 pub fun (**)(a : bytes, n : int) : bytes
     replicate(a.list, n).concat.vector
 
+pub fun byte/(**)(a : int32, n : int) : bytes
+    replicate([a], n).concat.vector
+
+pub fun int/bytes(n : int) : bytes
+    val nn = n / (2^8)
+    val rest = if nn == 0 then [].vector else int/bytes(pretend-decreasing(nn))
+    rest ++ byte/bytes(n)
+
 pub fun byte/bytes(n: int): bytes
     [ n.int32.and(0xff.int32) ].vector
 
@@ -38,7 +47,7 @@ pub fun int32/bytes(n : int32) : bytes
         n.and(msk)
     ].vector
     
-pub fun concat(lb : list<bytes>) : bytes
+pub fun bytes/concat(lb : list<bytes>) : bytes
     lb.map(list).concat.vector
     
 pub fun read-bytes(path : string) : bytes

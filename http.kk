@@ -6,7 +6,7 @@ import std/core/exn
 import std/num/int32
 
 import jsextern
-import bytestring
+import bytes
 
 extern import {
     js file "http.js"
