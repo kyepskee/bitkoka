@@ -143,8 +143,6 @@ fun sha1(s : bytes) : <console, pure> hash
     var blocks := [].vector
 
     val chunks = final-bitstring.split-every(512)
-    println("length")
-    println(chunks.length)
     var j := 0
 
     chunks.list/foreach fn(chunk)
@@ -187,8 +185,6 @@ fun sha1(s : bytes) : <console, pure> hash
         h3 := h3 + d
         h4 := h4 + e
     Hash((h0, h1, h2, h3, h4))
-
-
 
 fun bencode(v : bencode) : div bytes
     match v
