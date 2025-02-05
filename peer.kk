@@ -8,8 +8,10 @@ import bytes/parse
 import http
 import std/async
 import debug
+import bitfield
 
-struct peer-state
+pub struct peer-state
+    have : bitfield
     am_choking : bool
     am_interested : bool
     peer_choking : bool

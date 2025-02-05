@@ -14,6 +14,7 @@ import bytes
 import bytes/parse
 import http
 import peer
+import bitfield
 
 type bencode
     ByteString(s : bytes)
