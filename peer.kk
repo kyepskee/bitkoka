@@ -1,6 +1,7 @@
 module peer
 
 import std/num/int32
+import std/num/random
 
 import hash
 import bytes
@@ -10,12 +11,23 @@ import std/async
 import debug
 import bitfield
 
+pub struct peer-id
+    id : bytes
+
+pub fun peer-id/show(id: peer-id) : string
+    id.peer-id/id.show
+
 pub struct peer-state
     have : bitfield
     am_choking : bool
     am_interested : bool
     peer_choking : bool
     peer_interested : bool
+    peer-id : peer-id
+
+pub fun gen-rand-id() : ndet peer-id
+    val rints = list(0, 4) fn (_) { srandom-int32() }
+    rints.map(int32/bytes).map(list).concat.vector.Peer-id
 
 pub effect comm<a>
     fun write(msg: a) : ()
@@ -35,7 +47,6 @@ pub fun handshake(info-hash : hash, id : bytes) : comm<bytes> ()
     val reserved = byte/bytes(0) ** 8
     write(pstrlen ++ pstr ++ reserved ++ info-hash.bytes ++ id)
 
-pub alias peer-id = bytes
 
 pub fun parse-handshake() : parse peer-id
     val pstr = "BitTorrent protocol".bytes
@@ -45,7 +56,7 @@ pub fun parse-handshake() : parse peer-id
     exact(pstr)
     val _reserverd = take(8)
     val _info-hash = take(20)
-    take(20)
+    Peer-id(take(20))
 
 pub type message
     KeepAlive

@@ -238,11 +238,6 @@ fun parse-bencode() : <div, parse> bencode
 
     choose([parse-int, parse-bytestring, parse-list, parse-dict])
 
-    // ByteString(s : string)
-    // Int(i : int)
-    // List(vs : list<bencode>)
-    // Dict(d : list<(string, bencode)>)
-
 struct metainfo
     info : info
     announce : bytes
@@ -320,26 +315,27 @@ fun main()
 
     val torrent : bytes = read-bytes(filename)
 
-    val id = [srandom-int32(), srandom-int32(), srandom-int32(), srandom-int32(), srandom-int32()].map(int32/bytes).map(list).concat.vector
-        
+    val id = gen-rand-id()
+
     val metainfo-bencode : bencode = parse(torrent, parse-bencode).maybe.unjust
     val info-hash : hash = sha1(bencode(metainfo-bencode.dict["info".bytes]))
     val metainfo : metainfo = bencode/metainfo(metainfo-bencode)
     val parameters : list<(bytes, bytes)> =
         [
             ("info_hash".bytes, info-hash.bytes),
-            ("peer_id".bytes, id),
+            ("peer_id".bytes, id.peer-id/id),
             ("port".bytes, 6881.int32.bytes),
             ("uploaded".bytes, 0.int32.bytes),
             ("downloaded".bytes, 0.int32.bytes),
             ("left".bytes, metainfo.info.piece-list.length.int32.bytes),
             ("compact".bytes, 1.int32.bytes)
         ]
-
+    
     val tun = connect()
     with comm-tunnel(tun)
 
-    handshake(info-hash, id)
+    handshake(info-hash, id.peer-id/id)
+    
     var buffer := ref([].vector)
     buffer.set(read())
     val message = parse-keep(buffer, parse-handshake).maybe.unjust
