@@ -266,7 +266,6 @@ fun bencode/single-file(dict : dictionary) : exn file-info
         dict["length".bytes].int,
         [ dict["name".bytes].bytestring ].Path
     )
-    
 
 fun bencode/info(b : bencode) : exn info
     val dict : dictionary = b.dict
@@ -306,6 +305,79 @@ struct tracker-response
     incomplete : int
     peers : list<peer-info>
 
+fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console> ()
+    val request-size = 2^12
+    val piece-length = metainfo.info.piece-length
+    assert(
+        "Piece length is not divisible by hardcoded request size", 
+        piece-length % request-size == 0
+    )
+
+    fun request-message(req: request-info): message
+        Request(
+            req.piece-index,
+            req.begin,
+            request-size
+        )
+
+    while { True }
+        println("start")
+        if !get-state().am_interested then
+            set-state(get-state()(am_interested = True))
+            write(Interested)
+
+        if get-state().am_choking then
+            set-state(get-state()(am_choking = False))
+            write(Unchoke)
+
+        if !get-state().peer_choking then
+            match get-state().requested
+                Nothing ->
+                    val piece-index = get-state().have.first-off
+                    val begin = 0
+                    val req = Request-info([].vector, piece-index, begin)
+                    write(request-message(req))
+                    set-state(get-state()(requested = Just(req)))
+                    ()
+                _ -> ()
+                    
+        val message = read()
+        set-state(
+            match message
+                Piece(index, begin, block) ->
+                    val request-info = get-state().requested.unjust
+                    val request-begin = request-info.request-info/begin
+                    assert(
+                        "The received piece does not match the requested one",
+                        request-info.piece-index == index && request-begin == begin
+                    )
+                    val new-data = request-info.data ++ block
+                    val new-begin = begin + request-size
+                    if (new-begin == piece-length)
+                    then 
+                        // TODO: save piece to bitfield and disk
+                        get-state()(requested = Nothing)
+                    else 
+                        val req = Request-info(new-data, index, new-begin)
+                        write(request-message(req))
+                        get-state()(requested = Just(req))
+                Choke -> get-state()(peer_choking = True)
+                Unchoke -> get-state()(peer_choking = False)
+                Interested -> get-state()(peer_interested = True)
+                NotInterested -> get-state()(peer_interested = False)
+                _ -> get-state()
+        )
+        
+    
+
+effect end<a>
+    final ctl end(x : a) : b
+
+effect state
+    fun get-state() : peer-state
+    fun set-state(new-state : peer-state) : ()
+    
+
 fun main()
     val filename = "bocchi.torrent"
 
@@ -334,10 +406,50 @@ fun main()
     
     var buffer := ref([].vector)
     buffer.set(read())
-    val message = parse-keep(buffer, parse-handshake).maybe.unjust
-    // TODO: parse each read() as a series of messages, but dont keep the buffer between read()s
-    println("Peer id: " ++ message.show)
-    while { vector/length(!buffer) > 0 }
-        println(parse-keep(buffer, parse-message).maybe.unjust.show)
-            
-    ()
+    val peer-id = parse-keep(buffer, parse-handshake).maybe.unjust
+    println("Peer id: " ++ peer-id.show)
+    // TODO: change to ref
+
+    with handler
+        fun read()
+            with final ctl end(x : message) x
+            while { True }
+                if vector/length(!buffer) == 0 then
+                    buffer.set(read())
+
+                println(!buffer)
+
+                val msg = 
+                    parse-keep(buffer, parse-message).maybe
+
+                println(msg)
+
+                match msg
+                    Nothing ->
+                        buffer.set(append((!buffer).list, read().vector/list).vector)
+                    Just(msg) ->
+                        end(msg)
+            Unchoke // TODO: remove this unnecessary return while satisfying typechecking
+                
+        fun write(msg: message)
+            println("write(" ++ msg.show ++ ")")
+            write(msg.serialize)
+
+    var state : peer-state :=
+        Peer-state(
+            bitfield(metainfo.info.piece-list.length),
+            Nothing,
+            True,
+            False,
+            True,
+            False,
+            peer-id
+        )
+
+    with handler
+        fun get-state()
+            state
+        fun set-state(new-state)
+            state := new-state
+
+    peer-comm(metainfo)

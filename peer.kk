@@ -2,12 +2,12 @@ module peer
 
 import std/num/int32
 import std/num/random
+import std/async
 
 import hash
 import bytes
 import bytes/parse
 import http
-import std/async
 import debug
 import bitfield
 
@@ -17,8 +17,14 @@ pub struct peer-id
 pub fun peer-id/show(id: peer-id) : string
     id.peer-id/id.show
 
+pub struct request-info
+    data : bytes
+    piece-index: int
+    begin: int
+
 pub struct peer-state
     have : bitfield
+    requested : maybe<request-info>
     am_choking : bool
     am_interested : bool
     peer_choking : bool
