@@ -281,7 +281,7 @@ pub inline fun obj/array/@assign(a: jsobject<t>, index: string, value: jsarray<s
 inline extern ext/entries(a: any): any
   js inline "Object.entries(#1)"
 pub inline fun obj/entries(a: jsobject<t>): list<(string, jsobject<any>)>
-  val entries:jsarray<jsarray<jsobject<any>>> = JsArray(a.internal.entries()) 
+  val entries:jsarray<jsarray<jsobject<any>>> = JsArray(a.internal.entries())
   val len = entries.length
   list(0, len - 1).map fn(i)
     val jsobj: jsarray<jsobject<any>> = entries[i]
@@ -317,7 +317,7 @@ inline extern float/@index(a: any, index: int): float64
 inline extern mfloat/@index(a: any, index: int): maybe<float64>
   js inline "maybeget(#1, #2)"
 inline extern bool/@index(a: any, index: int): bool
-  js inline "#1[#2]" 
+  js inline "#1[#2]"
 inline extern mbool/@index(a: any, index: int): maybe<bool>
   js inline "maybeget(#1, #2)"
 inline extern any/@assign(a: any, index: int, value: any): ()
