@@ -1,4 +1,4 @@
-module http
+module net
 
 import std/async
 import std/os/null
@@ -9,7 +9,7 @@ import jsextern
 import bytes
 
 extern import {
-  js file "http.js"
+  js file "inline/net.js"
 }
 
 pub struct tunnel<a> {

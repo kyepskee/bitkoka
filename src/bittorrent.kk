@@ -12,7 +12,7 @@ import std/async
 import hash
 import bytes
 import bytes/parse
-import http
+import net
 import peer
 import bitfield
 import file

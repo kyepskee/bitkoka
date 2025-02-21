@@ -1,2 +1,2 @@
 all:
-	koka --execute --buildtag=dev --target=jsnode bittorrent.kk
+	koka --execute --buildtag=dev --target=jsnode src/bittorrent.kk
