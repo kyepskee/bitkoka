@@ -407,12 +407,11 @@ fun main()
   with comm-tunnel(tun)
 
   handshake(info-hash, id.peer-id/id)
-  
-  var buffer := ref([].vector)
-  buffer.set(read())
+
+  val buffer = ref([].vector)
+  buffer := read()
   val peer-id = parse-keep(buffer, parse-handshake).maybe.unjust
   println("Peer id: " ++ peer-id.show)
-  // TODO: change to ref
 
   // assumes single-file for now, with the only path being in the root
   val file-info: file-info = metainfo.info.files.head.unjust
@@ -426,16 +425,12 @@ fun main()
         if vector/length(!buffer) == 0 then
           buffer.set(read())
 
-        println(!buffer)
-
-        val msg = 
+        val msg =
           parse-keep(buffer, parse-message).maybe
-
-        println(msg)
 
         match msg
           Nothing ->
-            buffer.set(append((!buffer).list, read().vector/list).vector)
+            append(buffer, read())
           Just(msg) ->
             end(msg)
       Unchoke // TODO: remove this unnecessary return while satisfying typechecking
