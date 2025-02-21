@@ -15,6 +15,9 @@ import bytes/parse
 import http
 import peer
 import bitfield
+import file
+import debug
+
 
 type bencode
   ByteString(s : bytes)
@@ -305,11 +308,11 @@ struct tracker-response
   incomplete : int
   peers : list<peer-info>
 
-fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console> ()
+fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console, file-write> ()
   val request-size = 2^12
   val piece-length = metainfo.info.piece-length
   assert(
-    "Piece length is not divisible by hardcoded request size", 
+    "Piece length is not divisible by hardcoded request size",
     piece-length % request-size == 0
   )
 
@@ -321,7 +324,6 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console> ()
     )
 
   while { True }
-    println("start")
     if !get-state().am_interested then
       set-state(get-state()(am_interested = True))
       write(Interested)
@@ -335,12 +337,12 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console> ()
         Nothing ->
           val piece-index = get-state().have.first-off
           val begin = 0
-          val req = Request-info([].vector, piece-index, begin)
+          val req = Request-info([], piece-index, begin)
           write(request-message(req))
           set-state(get-state()(requested = Just(req)))
           ()
         _ -> ()
-          
+
     val message = read()
     set-state(
       match message
@@ -351,13 +353,15 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console> ()
             "The received piece does not match the requested one",
             request-info.piece-index == index && request-begin == begin
           )
-          val new-data = request-info.data ++ block
+          val new-data = append(request-info.data, [block])
           val new-begin = begin + request-size
           if (new-begin == piece-length)
-          then 
-            // TODO: save piece to bitfield and disk
-            get-state()(requested = Nothing)
-          else 
+          then
+            // TODO: set bitfield
+            val state = get-state()
+            file-write(new-data.flatten, index * piece-length)
+            state(requested = Nothing)
+          else
             val req = Request-info(new-data, index, new-begin)
             write(request-message(req))
             get-state()(requested = Just(req))
@@ -367,8 +371,8 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console> ()
         NotInterested -> get-state()(peer_interested = False)
         _ -> get-state()
     )
-    
-  
+
+
 
 effect end<a>
   final ctl end(x : a) : b
@@ -376,7 +380,7 @@ effect end<a>
 effect state
   fun get-state() : peer-state
   fun set-state(new-state : peer-state) : ()
-  
+
 
 fun main()
   val filename = "bocchi.torrent"
@@ -398,7 +402,7 @@ fun main()
       ("left".bytes, metainfo.info.piece-list.length.int32.bytes),
       ("compact".bytes, 1.int32.bytes)
     ]
-  
+
   val tun = connect()
   with comm-tunnel(tun)
 
@@ -409,6 +413,11 @@ fun main()
   val peer-id = parse-keep(buffer, parse-handshake).maybe.unjust
   println("Peer id: " ++ peer-id.show)
   // TODO: change to ref
+
+  // assumes single-file for now, with the only path being in the root
+  val file-info: file-info = metainfo.info.files.head.unjust
+  val path: string = file-info.path.path/list.head.unjust.force-string
+  with open(path)
 
   with handler
     fun read()
@@ -430,7 +439,7 @@ fun main()
           Just(msg) ->
             end(msg)
       Unchoke // TODO: remove this unnecessary return while satisfying typechecking
-        
+
     fun write(msg: message)
       println("write(" ++ msg.show ++ ")")
       write(msg.serialize)

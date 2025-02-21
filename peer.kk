@@ -18,7 +18,7 @@ pub fun peer-id/show(id: peer-id) : string
   id.peer-id/id.show
 
 pub struct request-info
-  data : bytes
+  data : list<bytes>
   piece-index: int
   begin: int
 
@@ -46,7 +46,7 @@ pub fun comm-tunnel(tun : tunnel<bytes>, f : () -> <comm<bytes>,asyncx|e> a) : <
     fun read()
       tun.receive()
   f()
-  
+
 pub fun handshake(info-hash : hash, id : bytes) : comm<bytes> ()
   val pstr = "BitTorrent protocol".bytes
   val pstrlen = [pstr.length.int32].vector
@@ -96,7 +96,7 @@ fun message/id(m : message) : int
 pub fun serialize(m : message) : bytes
   if m.is-KeepAlive then
     return byte/bytes(0) ** 4
-  val args = 
+  val args =
     match m
       KeepAlive -> [] // never happens
       Choke -> []
