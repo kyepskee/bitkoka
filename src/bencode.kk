@@ -1,29 +1,34 @@
 module bencode
 
-type bencode
+import std/core/undiv
+
+import bytes
+import bytes/parse
+
+pub type bencode
   ByteString(s : bytes)
   Int(i : int)
   List(vs : list<bencode>)
   Dict(d : list<(bytes, bencode)>)
 
-fun bencode/bytestring(b : bencode) : exn bytes
+pub fun bencode/bytestring(b : bencode) : exn bytes
   match b
     ByteString(s) -> s
     _ -> throw("Value " ++ bencode/show(b) ++ " is not a bytestring")
 
-fun bencode/int(b : bencode) : exn int
+pub fun bencode/int(b : bencode) : exn int
   match b
     Int(i) -> i
     _ -> throw("Value " ++ bencode/show(b) ++ " is not an int")
 
-fun bencode/list(b : bencode) : exn list<bencode>
+pub fun bencode/list(b : bencode) : exn list<bencode>
   match b
     List(l) -> l
     _ -> throw("Value " ++ bencode/show(b) ++ " is not a list")
 
-struct dictionary { list : list<(bytes, bencode)> }
+pub struct dictionary { list : list<(bytes, bencode)> }
 
-fun bencode/dict(b : bencode) : exn dictionary
+pub fun bencode/dict(b : bencode) : exn dictionary
   match b
     Dict(d) -> Dictionary(d)
     _ -> throw("Value " ++ bencode/show(b) ++ " is not a dictionary")
@@ -55,15 +60,63 @@ fun divshow(b : bencode) : div string
           "\"" ++ k.force-string ++ "\" => " ++ divshow(v)
         }
       "Dict{" ++ strs.intersperse(", ").concat-string ++ "}"
-      // val s =
-      //   d.map(fn((s, value))
-      //     [bencode-string(s), bencode(value)].bytestring/concat
-      //   )
-      //   .concat
-      // ["d".bytes, s, "e".bytes].concat
 
-fun bencode/show(b : bencode) : string {
+pub fun bencode/show(b : bencode) : string {
   pretend-no-div
     divshow(b)
 }
+
+fun concat-string(v : list<string>) : string
+  v.map(list).concat.string
+
+pub fun bencode-string(s : bytes) : bytes
+   [ s.length.show.bytes, ":".bytes, s ].concat
+
+pub fun bencode(v : bencode) : div bytes
+  match v
+    ByteString(s) ->
+      bencode-string(s)
+    Int(i) ->
+      ["i", i.show, "e"].concat-string.bytes
+    List(vs : list<bencode>) ->
+      ["l".bytes, vs.map(bencode).concat, "e".bytes].concat
+    Dict(d) ->
+      val s =
+        d.map(fn((s, value))
+          [bencode-string(s), bencode(value)].bytes/concat
+        )
+        .concat
+      ["d".bytes, s, "e".bytes].concat
+
+pub fun parse-bencode() : <div, parse> bencode
+  fun parse-int()
+    char('i')
+    val n = pnat()
+    char('e')
+    Int(n)
+
+  fun parse-string()
+    val len = pnat()
+    char(':')
+    val str = take(len)
+    str
+
+  fun parse-bytestring()
+    ByteString(parse-string())
+
+  fun parse-list()
+    char('l')
+    val bs = many(parse-bencode)
+    char('e')
+    List(bs)
+
+  fun parse-dict()
+    char('d')
+    fun parse-elem()
+      (parse-string(), parse-bencode())
+    val bs = many(parse-elem)
+    char('e')
+    Dict(bs)
+
+  choose([parse-int, parse-bytestring, parse-list, parse-dict])
 
