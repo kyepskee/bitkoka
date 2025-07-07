@@ -91,9 +91,10 @@ struct tracker-response
   incomplete : int
   peers : list<peer-info>
 
-fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console, file-write> ()
+fun peer-comm(metainfo: metainfo) : <state<h>, div, exn, comm<message>, console, file-write> ()
   val request-size = 2^12
   val piece-length = metainfo.info.piece-length
+
   assert(
     "Piece length is not divisible by hardcoded request size",
     piece-length % request-size == 0
@@ -118,7 +119,7 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console, fi
     if !get-state().peer_choking then
       match get-state().requested
         Nothing ->
-          val piece-index = get-state().have.first-off
+          val piece-index = (!get-state().have).first-off
           val begin = 0
           val req = Request-info([], piece-index, begin)
           write(request-message(req))
@@ -142,6 +143,8 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console, fi
           then
             // TODO: set bitfield
             val state = get-state()
+            println("piece saved to file")
+            bitfield/set(state.have, request-info.piece-index, True)
             file-write(new-data.flatten, index * piece-length)
             state(requested = Nothing)
           else
@@ -155,9 +158,9 @@ fun peer-comm(metainfo: metainfo) : <state, div, exn, comm<message>, console, fi
         _ -> get-state()
     )
 
-effect state
-  fun get-state() : peer-state
-  fun set-state(new-state : peer-state) : ()
+effect state<h>
+  fun get-state() : peer-state<h>
+  fun set-state(new-state : peer-state<h>) : ()
 
 fun main()
   val filename = "bocchi.torrent"
@@ -216,21 +219,21 @@ fun main()
       println("write(" ++ msg.show ++ ")")
       write(msg.serialize)
 
-  var state : peer-state :=
-    Peer-state(
-      bitfield(metainfo.info.piece-list.length),
+  var state :=
+    ref(Peer-state(
+      ref(bitfield(metainfo.info.piece-list.length)),
       Nothing,
       True,
       False,
       True,
       False,
       peer-id
-    )
+    ))
 
   with handler
     fun get-state()
-      state
+      !state
     fun set-state(new-state)
-      state := new-state
+      set(state, new-state)
 
   peer-comm(metainfo)

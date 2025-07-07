@@ -22,8 +22,8 @@ pub struct request-info
   piece-index: int
   begin: int
 
-pub struct peer-state
-  have : bitfield
+pub struct peer-state<h>
+  have : ref<h, bitfield>
   requested : maybe<request-info>
   am_choking : bool
   am_interested : bool
