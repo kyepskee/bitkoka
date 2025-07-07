@@ -27,21 +27,25 @@ function _get(url, action) {
 
 // Returns an action to call when you want to send something over the connection.
 // Currently doesn't simply logs errors to stdout 
-function _connect(ondata) {
-    const client = net.createConnection({ port: 25372 })
+function _connect(address, ondata) {
+    const client = net.createConnection(address['port'], address['host'])
     client.on('data', (data) => {
         ondata(false, data)
     })
 
     client.on('close', () => {
+        console.log('closed')
         ondata(true, [])
     })
 
+    // TODO: return errors
     // For now, ignore errors
     client.on('error', (e) => {
         console.log(e)
     })
 
-    return (str) => client.write(Buffer.from(str))
+    return (str) => { 
+        client.write(Buffer.from(str))
+    }
 }
 

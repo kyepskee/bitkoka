@@ -27,7 +27,7 @@ pub fun first-off(bf : bitfield) : exn int
   val len = bf.length
   for(1, len) fn(i)
     val leading-zeros = bf[len - i].clz
-    if leading-zeros != 0 then 
+    if leading-zeros != 0 then
       end(32 - leading-zeros + acc)
     else
       acc := acc + 32

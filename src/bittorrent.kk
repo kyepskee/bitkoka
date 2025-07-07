@@ -180,7 +180,7 @@ fun main()
       ("compact".bytes, 1.int32.bytes)
     ]
 
-  val tun = connect()
+  val tun = connect(Address("localhost", 25372))
   with comm-tunnel(tun)
 
   handshake(info-hash, id.peer-id/id)

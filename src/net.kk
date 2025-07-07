@@ -56,12 +56,17 @@ pub fun channel/split(ch : channel<either<a, b>>) : <asyncx,background> (channel
         Right(b) -> bch.emit(b)
   (ach, bch)
 
-pub fun connect() : <asyncx, console, background> tunnel<bytes>
+pub struct address {
+  host: string
+  port: int
+}
+
+pub fun connect(addr: address) : <asyncx, console, background> tunnel<bytes>
   val comm-ch = channel()
   await-to-channel(fn(cb)
       // cb is used to send data over channel
       val write-f =
-        prim-connect fn(end, data)
+        prim-connect(addr) fn(end, data)
           cb(Ok(Right(data.list.vector.map(int32))), end)
 
       cb(Ok(Left(write-f)), False)
@@ -78,7 +83,7 @@ pub fun connect() : <asyncx, console, background> tunnel<bytes>
 
   Tunnel(read-ch, write-ch)
 
-extern prim-connect(on-data : (bool, jsarray<int>) -> io-noexn ()) : io-noexn (bytes -> io-noexn ()) {
+extern prim-connect(addr: address, on-data : (bool, jsarray<int>) -> io-noexn ()) : io-noexn (bytes -> io-noexn ()) {
   js "_connect"
 }
 
