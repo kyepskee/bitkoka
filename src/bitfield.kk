@@ -25,10 +25,10 @@ pub fun first-off(bf : bitfield) : exn int
   with final ctl end(i) i
   var acc := 0
   val len = bf.length
-  for(1, len) fn(i)
-    val leading-zeros = bf[len - i].clz
-    if leading-zeros != 0 then
-      end(32 - leading-zeros + acc)
+  for(0, len - 1) fn(i)
+    val trailing-ones = bf[i].bit-reverse.not.clz
+    if trailing-ones != 32 then
+      end(trailing-ones + acc)
     else
       acc := acc + 32
   acc
