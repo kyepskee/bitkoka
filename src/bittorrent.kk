@@ -12,6 +12,7 @@ import std/async
 import hash
 import bytes
 import bytes/parse
+import bytes/slice
 import net
 import peer
 import bitfield
@@ -191,7 +192,6 @@ fun main()
   val buffer = ref([].vector)
   buffer := read()
   val peer-id = parse-keep(buffer, parse-handshake).maybe.unjust
-  println("Peer id: " ++ peer-id.show)
 
   // assumes single-file for now, with the only path being in the root
   val file-info: file-info = metainfo.info.files.head.unjust
@@ -200,7 +200,7 @@ fun main()
 
   with handler
     fun read()
-      with final ctl end(x : message) x
+      with final ctl util/end(x : message) x
       while { True }
         if vector/length(!buffer) == 0 then
           buffer.set(read())
@@ -212,7 +212,7 @@ fun main()
           Nothing ->
             append(buffer, read())
           Just(msg) ->
-            end(msg)
+            util/end(msg)
       Unchoke // TODO: remove this unnecessary return while satisfying typechecking
 
     fun write(msg: message)
